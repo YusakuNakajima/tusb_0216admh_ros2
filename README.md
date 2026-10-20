@@ -9,16 +9,17 @@ Windows を使わず、Linux から libusb（pyusb）で直接デバイスを操
 | 項目 | 状態 |
 | --- | --- |
 | USB の列挙・ディスクリプタ取得・インタフェースの claim | 実装済み（`tusb_probe.py`）。実機で確認済み（文字列ディスクリプタ、claim、IN の受信待ち。何も送らなければ IN には何も来ない） |
-| USB コマンド（設定・取り込み開始・データ取得） | **未実装。** プロトコルが非公開のため、Windows でのキャプチャ解析待ち（[docs/CAPTURE_GUIDE.md](docs/CAPTURE_GUIDE.md)） |
+| USB コマンド（設定・取り込み開始・データ取得） | 実装済み（`usb_device.py`）。公式ドライバの通信をキャプチャして特定した（[docs/PROTOCOL.md](docs/PROTOCOL.md)）。Windows 上の pyusb から実機で取り込みを確認済み（2026-10-20）。Linux の実機ではまだ動かしていない |
+| ID スイッチと USB デバイスの対応 | 実装済み。DLL と同じく、各機器に ID スイッチの値を問い合わせ、`device_id` と一致する機器を開く |
 | ROS ノード・メッセージ・launch | 実装済み。`backend:=mock`（模擬の正弦波）で確認できる |
-| キャプチャ解析ツール | 実装済み（`analyze_usb_capture.py`、USBPcap / usbmon 対応） |
+| キャプチャ解析ツール | 実装済み（`analyze_usb_capture.py`、`summarize_usb_capture.py`、USBPcap / usbmon 対応） |
 
-`backend:=usb` で起動すると、現状は最初のコマンドで `NotImplementedError` になって終了する。
-推測したバイト列をデバイスに送ることはしない。
+送るバイト列は、すべてキャプチャで公式ドライバが送ったものと同じ形式に限っている。
+作業の続きは [docs/HANDOFF.md](docs/HANDOFF.md)（Ubuntu での実機確認の手順と残課題）を参照。
 
 ### なぜ Windows 専用なのか
 
-メーカーが提供しているのは Windows 用のカーネルドライバと `TUSBADMH.DLL` だけで、
+メーカーが提供しているのは Windows 用のドライバ（WinUSB を使う INF）と `TUSBADMH.DLL` だけで、
 Python サンプルもこの DLL を ctypes で呼んでいるだけである（readme に「Windowsのみの対応」と明記）。
 取扱説明書（TUSB0216ADMH_M2.pdf）に書かれているのも DLL の API だけで、USB の通信仕様は載っていない。
 
@@ -56,6 +57,12 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 # 接続確認（読み取り専用。デバイスへの書き込みは一切しない）
 ros2 run tusb_0216admh_ros2 tusb_probe.py --claim
 
+# 実機で2秒取り込んで確認する（DIO 出力は触らない）
+ros2 run tusb_0216admh_ros2 tusb_selftest.py --id 0
+
+# 実機でノードを動かす（device_id は背面の ID スイッチに合わせる）
+ros2 launch tusb_0216admh_ros2 tusb_0216admh.launch.py backend:=usb
+
 # 模擬デバイスでノードを動かす
 ros2 launch tusb_0216admh_ros2 tusb_0216admh.launch.py backend:=mock
 ros2 topic echo /tusb_0216admh/adc_block --field sample_rate_hz
@@ -91,8 +98,8 @@ ros2 topic echo /tusb_0216admh/adc_block --field sample_rate_hz
 [docs/CAPTURE_GUIDE.md](docs/CAPTURE_GUIDE.md) を参照。
 
 1. Windows PC で `windows/capture_session.py` を実行し、そのあいだの通信を USBPcap で記録する。
-2. 記録したファイルを Linux 側の `analyze_usb_capture.py` に通し、API の呼び出しと通信を並べて表示する。
-3. 特定したコマンドで、`usb_device.py` の `NotImplementedError` を置き換える。
+2. 記録したファイルを `analyze_usb_capture.py` に通し、API の呼び出しと通信を並べて表示する。
+3. 特定したコマンドを `usb_device.py` に実装する。結果は [docs/PROTOCOL.md](docs/PROTOCOL.md) にまとめてある。
 
 ## テスト
 

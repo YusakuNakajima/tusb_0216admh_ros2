@@ -67,17 +67,56 @@ def acquire(log, dev_id, n_polls, ch1_only):
     log.call('Tusbadmh_Status_Get', dev_id)
 
 
+def scenario_start(log, dev_id):
+    """Vary each Adc_Start argument alone, then force a FIFO overflow."""
+    log.note('external clock (only set, nothing is acquired with it)')
+    for div in (0, 24):
+        log.call('Tusbadmh_Clock_Select', dev_id, 5, div, 0)
+
+    log.note('Adc_Start arguments: (CycLen, PreLen, TrgSel, Mode, Ch1Only)')
+    log.call('Tusbadmh_InputType', dev_id, 0, 0)
+    log.call('Tusbadmh_Clock_Select', dev_id, 0, 199, 8)
+    for cyc, pre, trg, mode, ch1 in ((1, 0, 3, 0, 0), (2, 0, 3, 0, 0), (0x12345, 0, 3, 0, 0),
+                                     (1048576, 0, 3, 0, 0), (1, 1, 3, 0, 0),
+                                     (1, 0x6789A, 3, 0, 0), (1, 1048576, 3, 0, 0),
+                                     (1, 0, 0, 0, 0), (1, 0, 1, 0, 0), (1, 0, 2, 0, 0),
+                                     (1, 0, 3, 1, 0), (1000, 0, 3, 1, 0), (1, 0, 3, 0, 1)):
+        log.call('Tusbadmh_Adc_Start', dev_id, cyc, pre, trg, mode, ch1)
+        log.call('Tusbadmh_Status_Get', dev_id)
+        log.call('Tusbadmh_Adc_Stop', dev_id)
+
+    log.note('overflow: 2 ch at 200 MHz / 8 = 25 MHz, far above what USB can carry')
+    log.call('Tusbadmh_Clock_Select', dev_id, 0, 7, 0)
+    log.call('Tusbadmh_Adc_Start', dev_id, 1, 0, 3, 0, 0)
+    log.call('Tusbadmh_Trigger', dev_id)
+    for _ in range(3):
+        log.call('Tusbadmh_Status_Get', dev_id)
+        log.call('Tusbadmh_Length', dev_id)
+    log.call('Tusbadmh_Adc_Stop', dev_id)
+    log.call('Tusbadmh_Status_Get', dev_id)
+    log.call('Tusbadmh_Clock_Select', dev_id, 0, 199, 8)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--id', type=int, default=0, help='rear ID switch value')
     parser.add_argument('--log', default='calls.jsonl')
     parser.add_argument('--gap-s', type=float, default=1.0)
+    parser.add_argument('--scenario', choices=('basic', 'start'), default='basic',
+                        help="'start': Adc_Start encoding and FIFO overflow")
     args = parser.parse_args()
     dev_id = args.id
     log = CallLog(args.log, args.gap_s)
     try:
         log.note('open')
         if log.call('Tusbadmh_Device_Open', dev_id) != 0:
+            return
+        if args.scenario == 'start':
+            try:
+                scenario_start(log, dev_id)
+            finally:
+                log.note('close')
+                log.call('Tusbadmh_Device_Close', dev_id)
             return
         try:
             log.note('digital I/O: read, then walk outputs 0x0..0xF')

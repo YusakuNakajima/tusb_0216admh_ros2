@@ -6,7 +6,9 @@ TUSB-0216ADMH の USB プロトコルは公開されていない。Linux ネイ�
 
 ## 用意するもの
 
-- 公式ドライバ（製品付属ディスクの `TUSBADMH\DRIVER`）をインストール済みの Windows PC
+- 公式ドライバ（製品付属ディスクの `TUSBADMH\DRIVER`、または
+  [ダウンロードページ](https://www.turtle-ind.co.jp/download/win7_8_10/) の `TUSBADMH_261.zip`）を
+  インストール済みの Windows PC。WinUSB 方式なので `pnputil /add-driver TUSBADMH.inf /install` で入る
 - Python 3（64bit。DLL が 64bit 版のため）
 - ベンダの Python サンプル [ADMHSmplPy.zip](https://www.turtle-ind.co.jp/wp-content/uploads/ADMHSmplPy.zip)
   に含まれる `TUSBADMH.py`（再配布条件が不明なので、本リポジトリには含めていない）
@@ -38,6 +40,13 @@ TUSB-0216ADMH の USB プロトコルは公開されていない。Linux ネイ�
    （シリアル文字列か、コマンドの応答か）を見分けるため。
 7. `*.pcapng` と `calls*.jsonl` を Linux 側に持ってくる。
 
+### Wireshark を使わない場合
+
+手順 3〜5 は `windows/run_capture.ps1` でまとめて行える。`capture_session.py`・`TUSBADMH.py` と同じフォルダに置き、
+`powershell -ExecutionPolicy Bypass -File run_capture.ps1 -Id 0 -Scenario basic` を実行する。
+管理者に昇格し（UAC の確認が1回出る）、デバイスのあるハブを探して USBPcapCMD で TUSB だけを記録する
+（接続済みのディスクリプタも記録に入れるので、抜き差しは不要）。出力は pcap 形式。
+
 ## 解析（Linux 側）
 
 ```bash
@@ -60,8 +69,20 @@ ros2 run tusb_0216admh_ros2 analyze_usb_capture.py tusb_session_id0.pcapng \
   デバイス一覧から `--device <address>` で指定する。
 - Windows と、キャプチャを取った PC の時計が別の場合は `--marker-offset-s` で揃える。
 
-解析で分かったコマンドは `tusb_0216admh/usb_device.py` の `UsbTusbAdmhDevice` に実装し、
-`NotImplementedError` を置き換える。
+解析で分かったコマンドは `tusb_0216admh/usb_device.py` の `UsbTusbAdmhDevice` に実装する。
+分かった内容は [PROTOCOL.md](PROTOCOL.md) にまとめてある。
+
+### シナリオ
+
+`capture_session.py --scenario` で選ぶ。
+
+- `basic`（既定）: DIO、入力レンジ、クロック、トリガレベル、取り込みと読み出し。
+- `start`: `Adc_Start` の引数を1つずつ変えたものと、外部クロックの設定、
+  25 MHz で FIFO をわざとオーバーフローさせる取り込み。
+
+DLL は裏のスレッドで `0x50`（状態）と `0x60`（データ）を約 15 ms ごとに送り続けるので、
+`analyze_usb_capture.py` の出力は長くなる。同じやり取りの繰り返しは目で追わず、
+コマンド番号ごとにまとめて見るとよい。
 
 ## 注意
 

@@ -5,7 +5,6 @@ tusb_0216admh:
   ros__parameters:
     backend: usb             # usb (libusb, native Linux) | mock (simulated sine)
     device_id: 0             # rear ID switch, 0..15
-    usb_index: 0             # which attached unit, in libusb enumeration order
     frame_id: tusb_0216admh
 
     ch1_input_range: bipolar # bipolar: -1..+1 V, unipolar: 0..2 V

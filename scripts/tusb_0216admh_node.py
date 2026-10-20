@@ -29,7 +29,6 @@ class Tusb0216AdmhNode(Node):
         p = self.declare_parameter
         self.backend = p('backend', 'usb').value  # 'usb' or 'mock'
         self.device_id = p('device_id', 0).value  # rear ID switch, 0..15
-        self.usb_index = p('usb_index', 0).value
         self.frame_id = p('frame_id', 'tusb_0216admh').value
         ch1_range = p('ch1_input_range', 'bipolar').value  # 'bipolar' or 'unipolar'
         ch2_range = p('ch2_input_range', 'bipolar').value
@@ -60,8 +59,7 @@ class Tusb0216AdmhNode(Node):
                 'expects for continuous acquisition; expect a FIFO overflow')
 
         self.pub = self.create_publisher(AdcBlock, '~/adc_block', 10)
-        kwargs = {'usb_index': self.usb_index} if self.backend == 'usb' else {}
-        self.device = create_device(self.backend, self.device_id, **kwargs)
+        self.device = create_device(self.backend, self.device_id)
         self.trigger_time = None
         self.published_samples = 0
         self.running = False

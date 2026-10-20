@@ -16,6 +16,7 @@
   <exec_depend>rclpy</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-usb</exec_depend>
   <!-- pyusb comes from pip into the container venv (see README) -->
 
   <test_depend>ament_flake8</test_depend>

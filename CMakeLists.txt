@@ -30,6 +30,10 @@ if(BUILD_TESTING)
     test/test_usb_capture.py
     APPEND_ENV PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}
   )
+  ament_add_pytest_test(test_usb_device
+    test/test_usb_device.py
+    APPEND_ENV PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}
+  )
 endif()
 
 #-- for Python
@@ -40,7 +44,9 @@ ament_python_install_package(tusb_0216admh)
 install(PROGRAMS
   scripts/tusb_0216admh_node.py
   scripts/tusb_probe.py
+  scripts/tusb_selftest.py
   scripts/analyze_usb_capture.py
+  scripts/summarize_usb_capture.py
   DESTINATION lib/${PROJECT_NAME}
 )
 #--- end Python

@@ -5,8 +5,8 @@
     tusb_probe.py --claim         # also claim the interface (checks permissions)
     tusb_probe.py --listen-s 2.0  # claim, then read the bulk IN endpoint
 
-Nothing is ever written to the device: with the protocol unknown, the only
-safe operations are reading descriptors and listening on the IN endpoint.
+Nothing is ever written to the device. To exercise the commands, use
+tusb_selftest.py.
 """
 
 import argparse
