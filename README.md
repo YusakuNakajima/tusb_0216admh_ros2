@@ -51,6 +51,10 @@ pip install pyusb
 最後に `OK /dev/bus/usb/...` と出れば完了で、`FAIL` が出たら USB を抜き差ししてもう一度実行する。
 外すときは `./udev/setup_udev.sh --uninstall`。
 
+コンテナは `privileged: true`（`docker/compose.yaml` の設定）で起動している必要がある。
+`privileged` なしで起動したコンテナでは、デバイスノードが 0666 でも `Input/Output Error` で開けない
+（2026-10-21 に確認）。
+
 コンテナは `/dev` をマウントしているが、既定のデバイスノードは `root:root 0664` なので、
 コンテナの `ros` ユーザーからは開けない（`Access denied` になる。2026-10-20 に確認）。
 そのため udev ルールで `0666` にする。
