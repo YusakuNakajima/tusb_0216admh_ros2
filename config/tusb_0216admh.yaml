@@ -1,0 +1,30 @@
+# TUSB-0216ADMH acquisition settings.
+# Defaults are provisional (chosen for a low data rate while bringing up the
+# driver), not tuned for an experiment.
+tusb_0216admh:
+  ros__parameters:
+    backend: usb             # usb (libusb, native Linux) | mock (simulated sine)
+    device_id: 0             # rear ID switch, 0..15
+    usb_index: 0             # which attached unit, in libusb enumeration order
+    frame_id: tusb_0216admh
+
+    ch1_input_range: bipolar # bipolar: -1..+1 V, unipolar: 0..2 V
+    ch2_input_range: bipolar
+
+    # Sample rate per channel = source / (clock_divider + 1) / 2**averaging_exponent
+    # source: 0 = 200 MHz, 1 = 20.48 MHz, 2 = 16.384 MHz, 3 = 12.8 MHz,
+    #         4 = 1.92 MHz, 5 = external CLOCK input (set external_clock_hz)
+    # source / (clock_divider + 1) must be 1..25 MHz.
+    clock_source: 0
+    clock_divider: 199       # 200 MHz / 200 = 1 MHz
+    averaging_exponent: 8    # 1 MHz / 256 = 3906.25 Hz
+    external_clock_hz: 0.0   # Hz, only for clock_source 5
+
+    trigger: software        # software | external | rising | falling (ch1 level)
+    trigger_level_v: 0.0     # V, rising/falling only
+    trigger_noise_level_v: 0.0244  # V, hysteresis band (manual suggests ~800 counts)
+    pretrigger_samples: 0
+    ch1_only: false          # true doubles the sustainable rate (200 kHz vs 100 kHz)
+
+    poll_period_s: 0.02      # s, how often the driver buffer is drained
+    max_block_samples: 10000 # samples per channel per message

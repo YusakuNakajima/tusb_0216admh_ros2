@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+# USB captures and call logs can be large and may hold lab measurements
+*.pcap
+*.pcapng
+*.jsonl

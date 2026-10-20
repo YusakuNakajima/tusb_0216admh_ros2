@@ -1,0 +1,7 @@
+# Turtle Industry TUSB-0216ADMH (VID 0ba0, PID 0024; shared by the TUSB ADM family).
+# Lets non-root users open the device through libusb. World-writable on purpose:
+# the container user (ros) shares no group with the host, so a GROUP= rule would
+# not reach it.
+#   sudo cp 99-tusb-0216admh.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0ba0", ATTRS{idProduct}=="0024", MODE="0666"
