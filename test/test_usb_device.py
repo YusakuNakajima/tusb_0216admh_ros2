@@ -10,17 +10,20 @@ from tusb_0216admh.usb_device import UsbTusbAdmhDevice
 class ScriptedTransport:
     """Expects the given OUT transfers in order and answers each with its IN replies."""
 
-    def __init__(self, script):
+    def __init__(self, script, stale=()):
         self.script = list(script)
-        self.replies = []
+        self.replies = [bytes.fromhex(r) for r in stale]  # left by an earlier process
         self.closed = False
 
     def write(self, data):
         expected, replies = self.script.pop(0)
         assert data.hex(' ') == expected
+        assert not self.replies, 'command sent before the previous reply was read'
         self.replies = [bytes.fromhex(r) for r in replies]
 
     def read(self, size, timeout_ms=None):
+        if not self.replies:
+            return b''  # timeout
         reply = self.replies.pop(0)
         assert len(reply) <= size
         return reply
@@ -68,6 +71,14 @@ def test_open_picks_the_unit_by_id_switch():
     assert dev.dio_read() == 0
     dev.close()
     assert transport.closed
+
+
+def test_open_drops_replies_left_by_an_earlier_process():
+    transport = ScriptedTransport([('f0', ['f0 00']), ('10', ['10 00'])],
+                                  stale=['10 00', '50 01 00 00 00 00 00 00'])
+    dev = UsbTusbAdmhDevice(transport=transport)
+    dev.open()
+    assert dev.dio_read() == 0
 
 
 def test_open_rejects_another_id_switch():

@@ -2,20 +2,20 @@
 
 タートル工業の USB AD コンバータ [TUSB-0216ADMH](https://www.turtle-ind.co.jp/products/ad-converters/tusb-0216admh/)
 （16bit、2ch、最大 25 MHz）を ROS 2 Humble から読むドライバ。
-Windows を使わず、Linux から libusb（pyusb）で直接デバイスを操作することを目指している。
+Windows を使わず、Linux から libusb（pyusb）で直接デバイスを操作する。
 
 ## 現状
 
 | 項目 | 状態 |
 | --- | --- |
 | USB の列挙・ディスクリプタ取得・インタフェースの claim | 実装済み（`tusb_probe.py`）。実機で確認済み（文字列ディスクリプタ、claim、IN の受信待ち。何も送らなければ IN には何も来ない） |
-| USB コマンド（設定・取り込み開始・データ取得） | 実装済み（`usb_device.py`）。公式ドライバの通信をキャプチャして特定した（[docs/PROTOCOL.md](docs/PROTOCOL.md)）。Windows 上の pyusb から実機で取り込みを確認済み（2026-10-20）。Linux の実機ではまだ動かしていない |
+| USB コマンド（設定・取り込み開始・データ取得） | 実装済み（`usb_device.py`）。公式ドライバの通信をキャプチャして特定した（[docs/PROTOCOL.md](docs/PROTOCOL.md)）。Windows 上の pyusb と Ubuntu（コンテナ）の両方で、実機での取り込みを確認済み（2026-10-20） |
 | ID スイッチと USB デバイスの対応 | 実装済み。DLL と同じく、各機器に ID スイッチの値を問い合わせ、`device_id` と一致する機器を開く |
-| ROS ノード・メッセージ・launch | 実装済み。`backend:=mock`（模擬の正弦波）で確認できる |
+| ROS ノード・メッセージ・launch | 実装済み。`backend:=usb` で実機から 3906.25 Hz 2ch を 5 秒間配信し、欠損・オーバーフローなしを確認済み。実機がなくても `backend:=mock`（模擬の正弦波）で動かせる |
 | キャプチャ解析ツール | 実装済み（`analyze_usb_capture.py`、`summarize_usb_capture.py`、USBPcap / usbmon 対応） |
 
 送るバイト列は、すべてキャプチャで公式ドライバが送ったものと同じ形式に限っている。
-作業の続きは [docs/HANDOFF.md](docs/HANDOFF.md)（Ubuntu での実機確認の手順と残課題）を参照。
+確認の手順と残課題は [docs/HANDOFF.md](docs/HANDOFF.md) を参照。
 
 ### なぜ Windows 専用なのか
 

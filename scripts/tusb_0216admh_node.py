@@ -7,6 +7,7 @@ on a FIFO overflow, so a gap in the data is never published silently.
 """
 
 import array
+import signal
 
 import numpy as np
 import rclpy
@@ -156,6 +157,9 @@ def main():
     except (KeyboardInterrupt, AcquisitionStopped):
         pass
     finally:
+        # ros2 launch forwards Ctrl-C, so a second SIGINT can arrive here; it must
+        # not cut the Adc_Stop / close below short.
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
         if node is not None:
             node.shutdown()
             node.destroy_node()

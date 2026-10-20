@@ -119,6 +119,24 @@ class UsbTransport:
         return bytes(data)
 
 
+# Replies are queued on bulk IN until read, so a process that dies between a
+# command and its reply leaves the reply behind and every later reply of a new
+# process is off by one (seen on Linux, 2026-10-20). open() drops what is left.
+DRAIN_TIMEOUT_MS = 20
+DRAIN_MAX_READS = 64  # a whole CMD_DATA reply is at most 2 * 512 B = 16 packets
+
+
+def _drain(transport):
+    """Discard stale bulk IN data and return the number of bytes dropped."""
+    dropped = 0
+    for _ in range(DRAIN_MAX_READS):
+        data = transport.read(64, timeout_ms=DRAIN_TIMEOUT_MS)
+        if not data:
+            break
+        dropped += len(data)
+    return dropped
+
+
 def _exchange(transport, out, reply_len):
     """Send one command and return its reply, checked against the opcode."""
     transport.write(bytes(out))
@@ -160,6 +178,7 @@ class UsbTusbAdmhDevice(TusbAdmhDevice):
             try:
                 if transport is not self._transport:
                     transport.open()
+                _drain(transport)
                 id_switch = _exchange(transport, [CMD_IDENTIFY], 2)[1]
             except AdmhError as e:
                 found.append(f'unusable ({e})')  # e.g. claimed by another process
