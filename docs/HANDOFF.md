@@ -51,8 +51,7 @@ BNC 入力は開放か ±1 V 以内、DIGITAL I/O は未接続で始める。
 pip install pyusb            # または sudo apt install python3-usb
 
 # 2. ホスト側（初回のみ）: root 以外から libusb で開けるようにする
-sudo cp udev/99-tusb-0216admh.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules && sudo udevadm trigger
+./udev/setup_udev.sh   # sudo のパスワードを聞かれる。最後に OK と出れば完了
 
 # 3. ビルドとテスト
 colcon build --packages-select tusb_0216admh_ros2 --cmake-args -DBUILD_TESTING=ON

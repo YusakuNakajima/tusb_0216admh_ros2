@@ -2,6 +2,6 @@
 # Lets non-root users open the device through libusb. World-writable on purpose:
 # the container user (ros) shares no group with the host, so a GROUP= rule would
 # not reach it.
-#   sudo cp 99-tusb-0216admh.rules /etc/udev/rules.d/
-#   sudo udevadm control --reload-rules && sudo udevadm trigger
+# Install on the host with ./setup_udev.sh (copies this file, reloads udev and
+# checks that the attached unit became accessible).
 SUBSYSTEM=="usb", ATTRS{idVendor}=="0ba0", ATTRS{idProduct}=="0024", MODE="0666"

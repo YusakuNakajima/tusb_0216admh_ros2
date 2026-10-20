@@ -42,10 +42,14 @@ Full Speed の Bulk 転送で足りる。
 # pyusb（コンテナの venv に入れる）
 pip install pyusb
 
-# ホスト側（初回のみ）: root 以外から libusb で開けるようにする
-sudo cp udev/99-tusb-0216admh.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules && sudo udevadm trigger
+# ホスト側（初回のみ。コンテナの外で、普通のユーザーとして実行する）
+./udev/setup_udev.sh
 ```
+
+`setup_udev.sh` は、udev ルールの設置（または更新）、udev の再読み込み、接続中のユニットが root 以外から
+開けるかの確認までを行う。`sudo` が必要な手順ではパスワードを聞かれる。
+最後に `OK /dev/bus/usb/...` と出れば完了で、`FAIL` が出たら USB を抜き差ししてもう一度実行する。
+外すときは `./udev/setup_udev.sh --uninstall`。
 
 コンテナは `/dev` をマウントしているが、既定のデバイスノードは `root:root 0664` なので、
 コンテナの `ros` ユーザーからは開けない（`Access denied` になる。2026-10-20 に確認）。
