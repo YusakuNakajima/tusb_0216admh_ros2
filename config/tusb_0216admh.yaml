@@ -23,7 +23,9 @@ tusb_0216admh:
     trigger_level_v: 0.0     # V, rising/falling only
     trigger_noise_level_v: 0.0244  # V, hysteresis band (manual suggests ~800 counts)
     pretrigger_samples: 0
-    ch1_only: false          # true doubles the sustainable rate (200 kHz vs 100 kHz)
+    ch1_only: false          # does NOT raise the sustainable rate: ch2 is still read and dropped
+    # Continuous acquisition holds up to 100 kHz per channel (measured, README
+    # "取り込みレートの上限"); above that the FIFO fills and acquisition stops.
 
     poll_period_s: 0.02      # s, how often the driver buffer is drained
     max_block_samples: 10000 # samples per channel per message
