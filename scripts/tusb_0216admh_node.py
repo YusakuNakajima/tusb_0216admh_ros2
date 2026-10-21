@@ -11,7 +11,6 @@ import signal
 
 import numpy as np
 import rclpy
-from rclpy.duration import Duration
 from rclpy.node import Node
 from tusb_0216admh import constants as c
 from tusb_0216admh import conversion
@@ -45,11 +44,27 @@ class Tusb0216AdmhNode(Node):
         self.poll_period_s = p('poll_period_s', 0.02).value
         self.max_block_samples = p('max_block_samples', 10000).value
 
+        # Every setting is checked before the device is opened, so a bad value
+        # never leaves an acquisition half started.
         self.input_types = (conversion.input_type_from_name(ch1_range),
                             conversion.input_type_from_name(ch2_range))
         if trigger_name not in c.TRIGGER_NAMES:
             raise ValueError(f'trigger must be one of {sorted(c.TRIGGER_NAMES)}')
         self.trigger = c.TRIGGER_NAMES[trigger_name]
+        self.trigger_counts = None
+        if self.trigger in (c.TRIGGER_RISING, c.TRIGGER_FALLING):
+            self.trigger_counts = conversion.trigger_level_counts(
+                self.trigger_level_v, self.trigger_noise_level_v, self.input_types[0])
+        if not 0 <= self.pretrigger_samples <= c.PRETRIGGER_LENGTH_MAX:
+            raise ValueError(f'pretrigger_samples must be 0..{c.PRETRIGGER_LENGTH_MAX}')
+        if self.pretrigger_samples and self.trigger == c.TRIGGER_SOFTWARE:
+            # The device ignores triggers until the pretrigger samples are in
+            # (manual 6.4.3), so the trigger sent right after start would be lost.
+            raise ValueError('pretrigger_samples needs an external or analog trigger')
+        if self.max_block_samples <= 0:
+            raise ValueError('max_block_samples must be positive')
+        if not self.poll_period_s > 0.0:
+            raise ValueError('poll_period_s must be positive')
         self.sample_rate_hz = conversion.sample_rate_hz(
             self.clock_source, self.clock_divider, self.averaging_exponent,
             self.external_clock_hz or None)
@@ -68,23 +83,17 @@ class Tusb0216AdmhNode(Node):
         self.device.open()
         try:
             self.configure_and_start()
+            self.timer = self.create_timer(self.poll_period_s, self.poll)
         except BaseException:
             self.shutdown()
             raise
-        self.timer = self.create_timer(self.poll_period_s, self.poll)
 
     def configure_and_start(self):
         d = self.device
         d.set_input_type(*self.input_types)
         d.select_clock(self.clock_source, self.clock_divider, self.averaging_exponent)
-        if self.trigger in (c.TRIGGER_RISING, c.TRIGGER_FALLING):
-            # Level and noise band are raw counts, referred to the ch1 range.
-            level = conversion.volts_to_counts(self.trigger_level_v, self.input_types[0])
-            noise = round(self.trigger_noise_level_v * c.ADC_FULL_SCALE_COUNTS
-                          / c.INPUT_SPAN_V)
-            d.set_trigger_level(
-                max(c.TRIGGER_LEVEL_MIN, min(c.TRIGGER_LEVEL_MAX, level)),
-                max(0, min(c.TRIGGER_NOISE_LEVEL_MAX, noise)))
+        if self.trigger_counts is not None:
+            d.set_trigger_level(*self.trigger_counts)
         d.start(1, self.pretrigger_samples, self.trigger, c.MODE_CONTINUOUS,
                 int(self.ch1_only))
         self.running = True
@@ -118,9 +127,13 @@ class Tusb0216AdmhNode(Node):
 
     def publish_block(self, n, overflow):
         msg = AdcBlock()
-        offset_ns = round(self.published_samples * 1e9 / self.sample_rate_hz)
-        msg.header.stamp = (self.trigger_time
-                            + Duration(nanoseconds=offset_ns)).to_msg()
+        # The first pretrigger_samples samples precede the trigger.
+        # Integer nanoseconds set directly: with pretrigger samples the stamp can
+        # fall before the clock origin (sim time), which rclpy Time cannot hold.
+        offset_ns = round((self.published_samples - self.pretrigger_samples) * 1e9
+                          / self.sample_rate_hz)
+        msg.header.stamp.sec, msg.header.stamp.nanosec = divmod(
+            self.trigger_time.nanoseconds + offset_ns, 1_000_000_000)
         msg.header.frame_id = self.frame_id
         msg.sample_rate_hz = self.sample_rate_hz
         msg.first_sample_index = self.published_samples

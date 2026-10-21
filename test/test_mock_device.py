@@ -96,3 +96,10 @@ def test_invalid_clock_is_parameter_error(setup):
     with pytest.raises(AdmhError) as e:
         dev.select_clock(0, 6, 0)
     assert e.value.code == 8
+
+
+def test_pretrigger_is_not_simulated(setup):
+    dev, _ = setup
+    with pytest.raises(AdmhError) as e:
+        dev.start(1, 100, c.TRIGGER_EXTERNAL, c.MODE_CONTINUOUS, 0)
+    assert e.value.code == 8

@@ -26,6 +26,29 @@ def volts_to_counts(volts, input_type):
     return max(0, min(c.ADC_FULL_SCALE_COUNTS - 1, raw))
 
 
+def trigger_level_counts(level_v, noise_level_v, input_type):
+    """Convert the analog trigger level and noise band (V) to raw counts.
+
+    Raises ValueError instead of clamping: a level the device cannot represent
+    would silently trigger on a different event. The level is referred to the
+    ch1 input range; the noise band is a width, so it has no offset.
+    """
+    lsb_v = c.INPUT_SPAN_V / c.ADC_FULL_SCALE_COUNTS
+    offset_v = c.INPUT_TYPE_OFFSET_V[input_type]
+    level = round((level_v - offset_v) / lsb_v)
+    noise = round(noise_level_v / lsb_v)
+    if not c.TRIGGER_LEVEL_MIN <= level <= c.TRIGGER_LEVEL_MAX:
+        raise ValueError(
+            f'trigger_level_v {level_v} V is outside '
+            f'{c.TRIGGER_LEVEL_MIN * lsb_v + offset_v:.5f}..'
+            f'{c.TRIGGER_LEVEL_MAX * lsb_v + offset_v:.5f} V for the ch1 input range')
+    if not 0 <= noise <= c.TRIGGER_NOISE_LEVEL_MAX:
+        raise ValueError(
+            f'trigger_noise_level_v {noise_level_v} V is outside '
+            f'0..{c.TRIGGER_NOISE_LEVEL_MAX * lsb_v:.5f} V')
+    return level, noise
+
+
 def input_type_from_name(name):
     """Map 'bipolar' / 'unipolar' to the Tusbadmh_InputType value."""
     names = {
