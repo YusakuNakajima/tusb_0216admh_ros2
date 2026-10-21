@@ -38,6 +38,10 @@ if(BUILD_TESTING)
     test/test_node_parameters.py
     APPEND_ENV PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}
   )
+  ament_add_pytest_test(test_adc_block_mean_node
+    test/test_adc_block_mean_node.py
+    APPEND_ENV PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}
+  )
 endif()
 
 #-- for Python
@@ -47,6 +51,7 @@ ament_python_install_package(tusb_0216admh)
 
 install(PROGRAMS
   scripts/tusb_0216admh_node.py
+  scripts/adc_block_mean_node.py
   scripts/tusb_probe.py
   scripts/tusb_selftest.py
   scripts/analyze_usb_capture.py
