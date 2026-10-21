@@ -7,6 +7,8 @@ OUT write whose first byte is the opcode; the reply on bulk IN starts with the
 same opcode. Multi-byte values are big endian.
 """
 
+import errno
+
 import numpy as np
 
 from tusb_0216admh import constants as c
@@ -77,8 +79,12 @@ class UsbTransport:
                 self._detached_kernel_driver = True
             usb.util.claim_interface(self._dev, c.USB_INTERFACE)
         except usb.core.USBError as e:
-            raise AdmhError(5, f'{e} (access denied: run udev/setup_udev.sh on the host; '
-                                f'I/O error in a container: start it with --privileged)') from e
+            if e.errno == errno.EBUSY:
+                hint = 'claimed by another process: is the driver already running?'
+            else:
+                hint = ('access denied: run udev/setup_udev.sh on the host; '
+                        'I/O error in a container: start it with --privileged')
+            raise AdmhError(5, f'{e} ({hint})') from e
         self._claimed = True
 
     def close(self):

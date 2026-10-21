@@ -76,6 +76,22 @@ ros2 launch tusb_0216admh_ros2 tusb_0216admh.launch.py backend:=mock
 ros2 topic echo /tusb_0216admh/adc_block --field sample_rate_hz
 ```
 
+### rqt_plot で見る
+
+`AdcBlock` は1メッセージに約 79 サンプルの配列が入っているので、rqt_plot に直接渡すと重い。
+`mean:=true` を付けると、ブロックごとの平均電圧を `std_msgs/Float32` で流すノード
+（`adc_block_mean_node.py`）も起動する。1ブロックにつき1つ、既定の設定で約 50 Hz。
+
+```bash
+ros2 launch tusb_0216admh_ros2 tusb_0216admh.launch.py mean:=true
+ros2 run rqt_plot rqt_plot /tusb_0216admh_mean/ch1_mean_v/data /tusb_0216admh_mean/ch2_mean_v/data
+```
+
+- 表示用。平均はローパスフィルタなので、1ブロック（既定 20 ms）より速い変化は見えない。
+  Float32 には時刻がなく、rqt_plot の横軸は受信時刻になる。解析には `AdcBlock` を記録する。
+- `ch1_only: true` のときは ch2 が空なので、`ch2_mean_v` は流れない。
+- rqt_plot が重いときは、設定（歯車）で描画を PyQtGraph にする。
+
 ### トピック
 
 `~/adc_block`（`tusb_0216admh_ros2/msg/AdcBlock`）: 連続したサンプルのブロック。
