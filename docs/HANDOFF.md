@@ -20,6 +20,9 @@ BNC 入力は開放、DIGITAL I/O は未接続。
   - `ros2 launch` で Ctrl-C を押すと SIGINT が2回届き、2回目が終了処理に割り込んでいた。
     終了処理の間は SIGINT を無視するようにした（`process has finished cleanly` を確認）。
   - 停止中に Adc_Stop を送っても正常に応答する（`40`）。
+- 2026-10-21: ホストに `udev/setup_udev.sh` でルールを入れ、コンテナの `ros` ユーザー（root ではない）
+  から `tusb_selftest.py --id 0` が全項目 PASS（3901 Hz）。`--privileged` なしのコンテナでは
+  `Input/Output Error` になる。
 
 ## 終わったこと
 
@@ -35,8 +38,8 @@ BNC 入力は開放、DIGITAL I/O は未接続。
 
 ## まだやっていないこと
 
-- コンテナの `ros` ユーザーからの実行。ホストに udev ルールを入れていないため、確認は root で行った。
-- 長時間（数時間）の連続取り込みと、高いサンプルレート（2ch で 100 kHz 付近）での取り込み。
+- 長時間（数時間）の連続取り込み。レートの上限は 2026-10-21 に測った（2ch 100 kHz で 30 秒安定、
+  それより上は約 124 kS/s で頭打ち。README の「取り込みレートの上限」）。
 - 繰り返しモード（Mode=1）、外部トリガ、アナログトリガ、外部クロックでの実際の取り込み。
   コマンドの形式はキャプチャで確認済みだが、取り込みはしていない。
 - 1回の `0x60` で要求できる最大サンプル数（いまは観測範囲内の 512 に抑えている）。
@@ -74,7 +77,7 @@ ros2 topic echo /tusb_0216admh/adc_block --field sample_rate_hz
 
 ## うまくいかないとき
 
-- `Access denied` / エラー 5: udev ルールが効いていない。コンテナ内なら、ホスト側に入れてから
+- `Access denied` / エラー 5: udev ルールが効いていない（`Input/Output Error` ならコンテナが `privileged` でない）。コンテナ内なら、ホスト側に入れてから
   抜き差しする。
 - エラー 6 `no unit with ID switch N; attached: ['ID M']`: ID スイッチと `--id` / `device_id` が違う。
 - エラー 9（応答が合わない）: 前のプロセスが残した応答は open で捨てるようにしたので、通常は起きない。

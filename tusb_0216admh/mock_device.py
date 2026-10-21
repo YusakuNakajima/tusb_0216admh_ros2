@@ -103,6 +103,8 @@ class MockTusbAdmhDevice(TusbAdmhDevice):
             raise AdmhError(8, 'the mock does not simulate analog triggers')
         if mode != c.MODE_CONTINUOUS:
             raise AdmhError(8, 'the mock only simulates continuous mode')
+        if pretrigger_length:
+            raise AdmhError(8, 'the mock does not simulate pretrigger samples')
         self._running = True
         self._ch1_only = bool(ch1_only)
         self._consumed = [0, 0]

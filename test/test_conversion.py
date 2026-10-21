@@ -73,3 +73,20 @@ def test_sample_rate_rejects_invalid_settings(args):
 def test_continuous_rate_limit():
     assert conversion.continuous_rate_limit_hz(False) == 100e3
     assert conversion.continuous_rate_limit_hz(True) == 200e3
+
+
+def test_trigger_level_counts_converts_volts():
+    assert conversion.trigger_level_counts(0.0, 0.0244, c.INPUT_TYPE_BIPOLAR) == (0x8000, 800)
+    assert conversion.trigger_level_counts(1.0, 0.0, c.INPUT_TYPE_UNIPOLAR) == (0x8000, 0)
+
+
+@pytest.mark.parametrize('level_v, noise_v, input_type', [
+    (2.0, 0.0, c.INPUT_TYPE_BIPOLAR),     # above +1 V: would have been clamped
+    (-1.0, 0.0, c.INPUT_TYPE_BIPOLAR),    # count 0, below TRIGGER_LEVEL_MIN
+    (-0.1, 0.0, c.INPUT_TYPE_UNIPOLAR),
+    (0.0, -0.01, c.INPUT_TYPE_BIPOLAR),   # negative noise band
+    (0.0, 0.2, c.INPUT_TYPE_BIPOLAR),     # above 3277 counts (~0.1 V)
+])
+def test_trigger_level_counts_rejects_unrepresentable_settings(level_v, noise_v, input_type):
+    with pytest.raises(ValueError):
+        conversion.trigger_level_counts(level_v, noise_v, input_type)

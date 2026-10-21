@@ -77,7 +77,8 @@ class UsbTransport:
                 self._detached_kernel_driver = True
             usb.util.claim_interface(self._dev, c.USB_INTERFACE)
         except usb.core.USBError as e:
-            raise AdmhError(5, f'{e} (missing udev rule? see udev/)') from e
+            raise AdmhError(5, f'{e} (access denied: run udev/setup_udev.sh on the host; '
+                                f'I/O error in a container: start it with --privileged)') from e
         self._claimed = True
 
     def close(self):

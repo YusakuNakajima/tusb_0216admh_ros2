@@ -34,6 +34,10 @@ if(BUILD_TESTING)
     test/test_usb_device.py
     APPEND_ENV PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}
   )
+  ament_add_pytest_test(test_node_parameters
+    test/test_node_parameters.py
+    APPEND_ENV PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}
+  )
 endif()
 
 #-- for Python
